@@ -32,30 +32,31 @@
 #include "JoystickDriver.c"
 task main()
 {
+	// initialize the motor mux
 	MSMMUXinit();
-	// Reset the encoders.  This can be done individually or all at once.
-  // You should do this at the start of your program.
-  MSMMotorEncoderResetAll(MSMMUX);
+	// Reset the encoders.
+  	MSMMotorEncoderResetAll(MSMMUX);
+	// Reset the encoders for our specific motor too
+	// we are using Sensor Port 2, Motor Mux Port 2 for our arm control
+  	MSMMotorEncoderReset(mmotor_S2_2);
 
-  // These are actually the default values for the PID controller
-  MSMMUXsetPID(MSMMUX, 0x1B58, 0x0000, 0x927C, 0x3A98, 0x012c, 0x1D4C, 0x10, 0x80);
+  	// These are actually the default values for the PID controller
+  	MSMMUXsetPID(MSMMUX, 0x1B58, 0x0000, 0x927C, 0x3A98, 0x012c, 0x1D4C, 0x10, 0x80);
 
-  // Reset the encoders for each motor
-  MSMMotorEncoderReset(mmotor_S2_2);
+  	// set the brake method
+  	MSMMotorSetBrake(mmotor_S2_2);
 
-  // You can specify the type of braking that should be used when the motors
-  // are sent the stop command.  The default is to use brake.
-  MSMMotorSetBrake(mmotor_S2_2);
+  	// set initial motor state to stopped
 	MSMotorStop(mmotor_S2_2);
-  while(true)
+  
+  	while(true)
 	{
 		alive();
-
+		// obtain the joystick values
 		getJoystickSettings(joystick);
 
-
-
-
+		// -35 to +35 is our stick deadzone to prevent motor creeping at small values
+		// joy1_y1 is the controller for the left set of wheels
 		if(joystick.joy1_y1 < 35 && joystick.joy1_y1 > -35) {
 			motor[motorC] = 0;
 		}
@@ -63,6 +64,7 @@ task main()
 			motor[motorC] = joystick.joy1_y1;
 		}
 
+		// joy1_y2 is the controller for the right set of wheels
 		if(joystick.joy1_y2 < 35 && joystick.joy1_y2 > -35) {
 			motor[motorB] = 0;
 		}
@@ -70,29 +72,34 @@ task main()
 			motor[motorB] = joystick.joy1_y2;
 		}
 
+		// joy1_TopHat is the left d-pad
+		// -1 means no button being pushed
 		if(joystick.joy1_TopHat == -1) {
 			motor[motorA] = 0;
 		}
+		// 0 means that "up" is being pushed
 		else if(joystick.joy1_TopHat == 0) {
 			motor[motorA] = -25;
 		}
+		// 4 means that "down" is being pushed
 		else if (joystick.joy1_TopHat == 4) {
 			motor[motorA] = 25;
 		}
 
+		// joy1Btn(2) is the Y button on the controller to move the arm down
 		if (joy1Btn(2)) {
 			MSMMotor(mmotor_S2_2, -127);
 			//PlaySound(soundUpwardTones);
 		}
+		// joy1Btn(4) is the A button on the controller to move the arm up
 		else if (joy1Btn(4)) {
 			MSMMotor(mmotor_S2_2, 127);
 			//PlaySound(soundDownwardTones);
 		}
+		// stop the arm motor at all other times
 		else {
 			MSMotorStop(mmotor_S2_2);
 			//ClearSounds();
-  	}
+  		}
 	}
-
-
 }
